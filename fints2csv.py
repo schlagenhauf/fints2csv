@@ -15,6 +15,8 @@ parser.add_argument('KNR', help='Account number')
 parser.add_argument('PIN', help='PIN of the account')
 parser.add_argument('startDate', help='starting date')
 parser.add_argument('endDate', help='end date')
+parser.add_argument('-v', '--verbose', help='increase output verbosity', action="store_true")
+parser.add_argument('-t', '--testrun', help='disables writing to file', action="store_true")
 args = parser.parse_args()
 
 # connect to bank via FINTS
@@ -31,10 +33,13 @@ header = set()
 for st in statement:
     header |= statement[0].data.keys() # set update operator
 
+if args.verbose:
+    print('Header: %s' % header)
+
 with open('transfers.csv', 'w') as csvfile:
     csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(header)
-    for st in statement:
+    for i,st in enumerate(statement):
         row = []
         for key in header:
             if key not in st.data.keys():
@@ -44,6 +49,11 @@ with open('transfers.csv', 'w') as csvfile:
             else:
                 row.append(st.data[key])
 
-        csvwriter.writerow(row);
+        if args.verbose:
+            print("Statement %i: %s, %s, %s" % (i, st.data['date'], st.data['amount'], st.data['applicant_name']))
+
+
+        if not args.testrun:
+            csvwriter.writerow(row);
 
 print('Wrote %i rows with %i columns each' % (len(statement), len(header)))
